@@ -13,11 +13,11 @@ fn main() {
             let ch = line.chars().nth(i).unwrap();
 
             match ch {
-                'a' => vowel_count[0] = 1,
-                'e' => vowel_count[1] = 1,
-                'i' => vowel_count[2] = 1,
-                'o' => vowel_count[3] = 1,
-                'u' => vowel_count[4] = 1,
+                'a' => vowel_count[0] += 1,
+                'e' => vowel_count[1] += 1,
+                'i' => vowel_count[2] += 1,
+                'o' => vowel_count[3] += 1,
+                'u' => vowel_count[4] += 1,
                 _ => (),
             };
 
