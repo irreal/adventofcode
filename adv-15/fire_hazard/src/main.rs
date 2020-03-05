@@ -36,7 +36,7 @@ fn main() {
                 state[x][y] += match tokens[0] {
                     "on" => 1,
                     "off" => {
-                        -2
+                        -1
                     },
                     "toggle" => {
                         2
