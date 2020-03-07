@@ -31,13 +31,21 @@ fn main() {
         operations.push(operation);
 
     }
-    let mut executed_operation = true;
-    while executed_operation {
-        executed_operation = false;
-        for operation in &mut operations {
-        perform_operation(operation, &mut map);
-        }
+    while operations.len() > 0 {
+        operations.retain(|operation| {
+            let delete = {
+            if can_perform(&operation, &map) {
+                perform_operation(&operation, &mut map);
+                true
+            }
+            else {
+                false
+            }
+            };
+            !delete
+        });
     }
+    println!("and a is: {:?}", map.get("a"));
 }
 
 fn create_operation(tokens: Vec<&str>) -> Operation {
@@ -48,8 +56,8 @@ fn create_operation(tokens: Vec<&str>) -> Operation {
             match tokens[1] {
                 "AND" => Operation::And(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
                 "OR" => Operation::Or(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
-                "LShift" => Operation::LShift(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
-                "RShift" => Operation::RShift(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
+                "LSHIFT" => Operation::LShift(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
+                "RSHIFT" => Operation::RShift(create_value(tokens[0].to_string()), create_value(tokens[2].to_string()), create_value(tokens[4].to_string())),
                 _ => panic!("Unsupported operation! {}", tokens[1])
             }
         },
@@ -66,26 +74,60 @@ fn create_value(value : String) -> Value {
     return Value::Reference(value);
 }
 
-fn get_value(value: Value, map: &HashMap::<String, u16>) -> Option<u16> {
+fn get_value(value: &Value, map: &HashMap::<String, u16>) -> Option<u16> {
     match value {
-        Value::Literal(l) => Some(l),
+        Value::Literal(l) => Some(*l),
         Value::Reference(r) => {
-           match map.get(&r) {
+           match map.get(r) {
                Some(i) => Some(*i),
                None => None
            }
         }
     }
 }
-fn get_reference(value: Value) -> String {
+fn get_reference(value: &Value) -> String {
     match value {
-        Value::Reference(r) => r,
+        Value::Reference(r) => r.to_string(),
         _=> panic!("Cannot get reference of literal value!")
     }
 }
 
-fn perform_operation(operation: &mut Operation, map: &mut HashMap::<String, u16>) {
-    let target:Value;
+fn can_perform(operation: &Operation, map: &HashMap::<String, u16>) -> bool {
+    match operation {
+        Operation::Assign(v1,_t) => literal_or_has_value(v1, map),
+        Operation::And(v1,v2,_t) => {
+            literal_or_has_value(v1, map) && literal_or_has_value(v2, map)
+        },
+        Operation::Or(v1,v2,_t) => {
+            literal_or_has_value(v1, map) && literal_or_has_value(v2, map)
+        },
+        Operation::Not(v1,_t) => {
+            literal_or_has_value(v1, map)
+        },
+        Operation::LShift(v1,v2,_t) => {
+            literal_or_has_value(v1, map) && literal_or_has_value(v2, map)
+        },
+        Operation::RShift(v1,v2,_t) => {
+            literal_or_has_value(v1, map) && literal_or_has_value(v2, map)
+        }
+    }
+}
+
+fn literal_or_has_value(value: &Value, map: &HashMap::<String, u16>) -> bool {
+match value {
+    Value::Literal(_l) => true,
+    Value::Reference(r) => {
+        match map.get(r) {
+            None => false,
+            Some(_v) => true
+        }
+    }
+}
+}
+
+fn perform_operation(operation: &Operation, map: &mut HashMap::<String, u16>) {
+    println!("doing: {:?}", operation);
+    let target:&Value;
     let result = match operation {
         Operation::Assign(v1,t) => {
             target = t;
@@ -114,6 +156,16 @@ fn perform_operation(operation: &mut Operation, map: &mut HashMap::<String, u16>
         _ => panic!("unsupported operation!")
     };
     let value = map.entry(get_reference(target)).or_insert(0);
-    *value = result;
+    *value = match target {
+        Value::Reference(r) => {
+         if r == "b" {
+            956
+         } 
+         else {
+             result
+         }
+        },
+        _ => result
+    };
     println!("we did it! {:?}", map);
 }
